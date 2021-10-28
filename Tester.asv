@@ -1,0 +1,35 @@
+classdef Tester < handle 
+
+
+    properties
+        loadedDisplacements
+
+        displacements
+
+    end
+
+     methods (Access = public)
+
+        function obj = DisplacementsComputer(cParams)
+            obj.init(cParams);
+        end
+
+        function obj = compute(obj)  
+           obj.testerCompute();
+        end
+
+     end
+
+
+     methods (Access = private)
+         function obj = init(obj,cParams)
+             obj.data = cParams.data;
+             obj.dim  = cParams.dim;
+             obj.loadedDisplacements = cParams.loadedDisplacements;
+         end
+         function obj = testerCompute(obj)
+
+         end
+
+     end
+end
