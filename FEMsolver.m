@@ -12,6 +12,7 @@ classdef FEMsolver < handle
         forceVector
 
         displacements
+        value
 
     end
 
@@ -26,6 +27,7 @@ classdef FEMsolver < handle
             obj.stiffnessMatrixCompute();
             obj.forceVectorCompute();
             obj.displacementsCompute();
+            obj.checkout();
         end
 
     end
@@ -35,6 +37,7 @@ classdef FEMsolver < handle
         function obj = init(obj,cParams)
             obj.data = cParams.data;
             obj.dim  = cParams.dim;
+            obj.loadedDisplacements = cParams.loadedDisplacements;
         end
  
 
@@ -51,7 +54,7 @@ classdef FEMsolver < handle
             d   = obj.dim;
             dat = obj.data ;
 
-                Fext=zeros(d.ndof,1);
+            Fext=zeros(d.ndof,1);
 
             for i=1:size(dat.fdata1,1)
                 a=d.ni*dat.fdata1(i,1)-(d.ni-dat.fdata1(i,2));
@@ -59,9 +62,9 @@ classdef FEMsolver < handle
             end
 
             obj.forceVector = Fext;
-          
+
         end
-        
+
         
         function obj = displacementsCompute(obj)
             s.data = obj.data;
@@ -73,8 +76,14 @@ classdef FEMsolver < handle
             obj.displacements = solution.displacements;
         end
 
-%         function checktext
-%           cuando compile comprobar que los resultados estan bien
-%         end
+
+        function obj = checkout(obj)
+            s.loadedDisplacements = obj.loadedDisplacements;
+            s.displacements = obj.displacements;
+            solution = Tester(s);
+            solution.compute();
+            obj.value = solution.value;
+        end
+
     end
 end
