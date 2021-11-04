@@ -7,22 +7,29 @@ function main
 
 fileName = 'Data.m';
 
-[data,dim,loadedDisplacements] = loadData(fileName);
+[data,dim] = loadData(fileName);
 
 s.data = data;
 s.dim = dim;
-s.loadedDisplacements = loadedDisplacements;
-
 
 FEMsolverdisplacements = FEMsolver(s);
 FEMsolverdisplacements.compute();
 displacements = FEMsolverdisplacements.displacements;
-%dim = FEMsolverdisplacements.dim;
-loadedDisplacements = FEMsolverdisplacements.loadedDisplacements;
-value = FEMsolverdisplacements.value;
+
+loadedDisplacements = loadDisplacements(fileName);
+sT.displacements = displacements;
+sT.loadedDisplacements = loadedDisplacements;
+TesterDisplacements = Tester(sT);
+TesterDisplacements.compute();
+value = TesterDisplacements.value;
+
 
 end
 
-function [data,dim,loadedDisplacements] = loadData(fileName)
+function [data,dim] = loadData(fileName)
+run(fileName)
+end
+
+function loadedDisplacements = loadDisplacements(fileName)
 run(fileName)
 end

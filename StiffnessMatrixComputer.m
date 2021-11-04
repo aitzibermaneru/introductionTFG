@@ -1,15 +1,17 @@
 classdef StiffnessMatrixComputer < handle 
  
 
-    properties
+    properties (Access = public)
         data
         dim
+        stiffnessMatrix 
+    end
 
+    properties (Access = private)
         connectivityMatrix
         elementMatrix
-        stiffnessMatrix   
-
     end
+
 
     methods (Access = public)
 
@@ -18,9 +20,9 @@ classdef StiffnessMatrixComputer < handle
         end
 
         function obj = compute(obj)
-            obj.connectivityMatrixCompute();
-            obj.elementMatrixCompute();
-            obj.stiffnessMatrixCompute();
+            obj.computeConnectivityMatrix();
+            obj.computeElementMatrix();
+            obj.computeGlobalStiffnessMatrix();
         end
 
     end
@@ -32,81 +34,134 @@ classdef StiffnessMatrixComputer < handle
             obj.dim  = cParams.dim;
         end
 
-        function obj = connectivityMatrixCompute(obj)
-            d = obj.dim;
-            dat = obj.data;
-            connectivityMatrixv= zeros(d.nel,d.nne*d.ni);
-         
-            for e=1:d.nel
-                for i=1:d.nne
-                    for j=1:d.ni  
-                        I = d.ni*(i-1)+j;
-                        connectivityMatrixv(e,I)= + d.ni *(dat.Tnod(e,i)-1)+j;
+        function obj = computeConnectivityMatrix(obj)
+            nElem = obj.dim.nel; 
+            nNodE = obj.dim.nne;
+            nDofN = obj.dim.ni;
+            Tn    = obj.data.Tnod;
+
+            T = zeros(nElem,nNodE*nDofN );
+
+            for iElem=1:nElem
+                for n=1:nNodE
+                    for j=1 : nDofN
+                        I = nDofN *(n-1)+j;
+                        T(iElem,I)= nDofN  *(Tn(iElem,n)-1)+j;
                     end
                 end
             end
-            obj.connectivityMatrix = connectivityMatrixv;
+            obj.connectivityMatrix = T;
+
         end
 
-        function obj = elementMatrixCompute(obj)
+        function obj = computeElementMatrix(obj)
 
-            d = obj.dim;
-            dat = obj.data;
-            connectivityMatrixv = obj.connectivityMatrix;
-            Kel = zeros(d.nne*d.ni,d.nne*d.ni,d.nel);
+            nElem = obj.dim.nel;
+            nDofN = obj.dim.ni;
+            nNodE = obj.dim.nne;
 
-            for e = 1:d.nel
-                x1 = dat.x(dat.Tnod(e,1),1);
-                y1 = dat.x(dat.Tnod(e,1),2);
-                x2 = dat.x(dat.Tnod(e,2),1);
-                y2 = dat.x(dat.Tnod(e,2),2);
+            R   = zeros(nNodE*nDofN ,nNodE*nDofN);
+            K   = zeros(nNodE*nDofN ,nNodE*nDofN);
+            Kel = zeros(nNodE*nDofN ,nNodE*nDofN ,nElem);
 
 
-                l=sqrt((x2-x1)^2+(y2-y1)^2);
-
-                R = 1/l*[x2-x1 y2-y1 0 0 0 0;
-                    -(y2-y1) x2-x1 0 0 0 0;
-                    0 0 l 0 0 0;
-                    0 0 0 x2-x1 y2-y1 0;
-                    0 0 0 -(y2-y1) x2-x1 0;
-                    0 0 0 0 0 l];
-
-                elementMatrixv = 1/l^3*dat.mat(dat.Tmat(e),3)*dat.mat(dat.Tmat(e),1)*[0 0 0 0 0 0;
-                    0 12 6*l 0 -12 6*l;
-                    0 6*l 4*l^2 0 -6*l 2*l^2;
-                    0 0 0 0 0 0;
-                    0 -12 -6*l 0 12 -6*l;
-                    0 6*l 2*l^2 0 -6*l 4*l^2]+...
-                    dat.mat(dat.Tmat(e),1)*dat.mat(dat.Tmat(e),2)/l*[1 0 0 -1 0 0;
-                    0 0 0 0 0 0;
-                    0 0 0 0 0 0;
-                    -1 0 0 1 0 0;
-                    0 0 0 0 0 0;
-                    0 0 0 0 0 0];
-
-                Kel(:,:,e)=Kel(:,:,e)+R.'*elementMatrixv*R;
-
+            for iElem=1:nElem
+                [R,l]   = obj.computeRotationMatrix(iElem,R);
+                K   = obj.computeElementalMatrix(iElem,K,l);
+                Kel = obj.computeRotateMatrix(iElem,Kel,K,R);
             end
+
             obj.elementMatrix = Kel;
+
         end
 
-        function obj = stiffnessMatrixCompute(obj)
-            connectivityMatrixv = obj.connectivityMatrix;
-            d = obj.dim;
-            elementMatrixv = obj.elementMatrix;
 
-            KG = zeros(d.ndof,d.ndof);
-            for e=1:d.nel             
-                for i=1:d.nne*d.ni   
-                    I=connectivityMatrixv(e,i);
-                    for j=1:d.nne*d.ni
-                        J=connectivityMatrixv(e,j);
-                        KG(I,J)=KG(I,J)+elementMatrixv(i,j,e);
+        function [R,l] = computeRotationMatrix (obj,iElem,R)
+            Tn = obj.data.Tnod;
+            x  = obj.data.x;
+            
+                  x1 = x(Tn(iElem,1),1);
+                  y1 = x(Tn(iElem,1),2);
+                  x2 = x(Tn(iElem,2),1);
+                  y2 = x(Tn(iElem,2),2);
+
+                  l = sqrt((x2-x1)^2+(y2-y1)^2);
+
+                  cx = (x2-x1)/l;
+                  cy = (y2-y1)/l;
+
+                  R(1,1) = cx;
+                  R(1,2) = cy;
+                  R(2,1) = -cy;
+                  R(2,2) = cx;
+                  R(3,3) = 1;
+                  R(4,4) = cx;
+                  R(4,5) = cy;
+                  R(5,4) = -cy;
+                  R(5,5) = cx;
+                  R(6,6) = 1;    
+        end
+
+
+        function K = computeElementalMatrix(obj,iElem,K,l)
+            mat  = obj.data.mat;
+            Tmat = obj.data.Tmat;
+            c1 = 1/l^3*mat(Tmat(iElem),3)*mat(Tmat(iElem),1);
+            c2 = mat(Tmat(iElem),1)*mat(Tmat(iElem),2)/l;
+            c3 = 12;
+            c4 = 6*l;
+            c5 = 4*l^2;
+            c6 = 2*l^2;
+
+            K(1,1) = c2;
+            K(1,4) = -c2;
+            K(2,2) = c1*c3;
+            K(2,3) = c1*c4;
+            K(2,5) = -c1*c3;
+            K(2,6) = c1*c4;
+            K(3,2) = c1*c4;
+            K(3,3) = c1*c5;
+            K(3,5) = -c1*c4;
+            K(3,6) = c1*c6;
+            K(4,1) = -c2;
+            K(4,4) = c2;
+            K(5,2) = -c1*c3;
+            K(5,3) = -c1*c4;
+            K(5,5) = c1*c3;
+            K(5,6) = -c1*c4;
+            K(6,2) = c1*c4;
+            K(6,3) = c1*c6;
+            K(6,5) = -c1*c4;
+            K(6,6) = c1*c5;    
+        end
+
+        function Kel = computeRotateMatrix(obj,iElem,Kel,K,R)
+            Kel(:,:,iElem)=Kel(:,:,iElem)+R.'*K*R;
+        end
+
+
+        function obj = computeGlobalStiffnessMatrix(obj)
+            nElem = obj.dim.nel;
+            nDofN = obj.dim.ni;
+            nNodE = obj.dim.nne;
+            nDof  = obj.dim.ndof; 
+
+            T = obj.connectivityMatrix;
+            Kel = obj.elementMatrix;
+
+            KG = zeros(nDof,nDof);
+
+            for iElem=1:nElem
+                for n=1:nNodE*nDofN
+                    I=T(iElem,n);                  
+                    for j=1:nNodE*nDofN 
+                        J=T(iElem,j);
+                        KG(I,J)=KG(I,J)+Kel(n,j,iElem);
                     end
                 end
             end
-            obj.stiffnessMatrix = KG;
 
+            obj.stiffnessMatrix = KG;
         end
 
     end

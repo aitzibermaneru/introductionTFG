@@ -1,11 +1,9 @@
 classdef Tester < handle 
 
-    properties
-
+    properties (Access = public)
         loadedDisplacements
         displacements
-        value
-
+         value
     end
 
      methods (Access = public)
@@ -15,7 +13,7 @@ classdef Tester < handle
         end
 
         function obj = compute(obj)  
-           obj.testerCompute();
+           obj.computeTesterDisplacements();
         end
 
      end
@@ -27,23 +25,12 @@ classdef Tester < handle
              obj.displacements = cParams.displacements;
          end
 
-         function obj = testerCompute(obj)
-             displacementsv = obj.displacements;
-             loadedDisplacementsv = obj.loadedDisplacements;
-             loadedDisplacementsv = loadedDisplacementsv.';
-             valuev = 1;
-             for i=1:length(displacementsv)
-                 if abs(displacementsv(i,1)-loadedDisplacementsv(i,1)) > 1e-10
-                     valuev = 0;
-                     error='Uncorrect displacement';
-                     disp(error)
-                 end
-             end
-             if valuev == 1
-                 sol='Displacements are correct';
-                 disp(sol)
-             end
-             obj.value = valuev;
+         function obj = computeTesterDisplacements(obj)
+             s.displacements = obj.displacements;
+             s.loadedDisplacements = obj.loadedDisplacements;
+             solution = TesterDisplacements(s);
+             solution.compute();
+             obj.value = solution.value;
          end
 
      end
