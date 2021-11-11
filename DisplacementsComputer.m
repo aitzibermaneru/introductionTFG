@@ -2,17 +2,22 @@ classdef DisplacementsComputer < handle
     
 
     properties (Access = public)
-        dim
-        data
         displacements
+        Reactions
     end
 
     properties (Access = private)
+        dim
+        data
         stiffnessMatrix
         forceVector
+        K
+        F
+        uL
         ur
         vl
         vr
+        RR
     end
 
 
@@ -23,8 +28,13 @@ classdef DisplacementsComputer < handle
         end
 
         function obj = compute(obj)
-           obj.fixedDOFCompute();
-           obj.solveSystemCompute();
+           obj.computefixedDOF();
+           obj.computeFreeDOF();
+           obj.splitStiffnessMatrix();
+           obj.splitForceVector();
+           obj.solveSystem();
+           obj.jointDisplacements();
+           obj.jointReactions();
         end
 
     end
@@ -39,61 +49,88 @@ classdef DisplacementsComputer < handle
         end
 
 
-        function obj = fixedDOFCompute(obj)
-            nDof  = obj.dim.ndof;
+        function computefixedDOF(obj)
             nDofN = obj.dim.ni;
-            fxnod = obj.data.fixnod;
-           
-            vrv = zeros(size(fxnod,1),1);
-            vlv = zeros(nDof-size(fxnod,1),1);
-
+            fxnod = obj.data.fixnod;    
+            vrv = zeros(size(fxnod,1),1);            
             for i=1:size(fxnod,1)
-                a = nDofN*fxnod(i,1)-(nDofN-fxnod(i,2));
+                node = fxnod(i,1);
+                dof  = fxnod(i,2);
+                a = nDofN*node-(nDofN-dof);
                 vrv(i) = a;
-            end
-
-            vlv = setdiff(1:nDof,vrv);
+            end 
             urv = fxnod(:,3);
-            vlv = vlv';
-
             obj.ur = urv;
-            obj.vl = vlv;
             obj.vr = vrv;
-
-         
         end
 
-        function obj = solveSystemCompute(obj)
-            urv = obj.ur;
+        function computeFreeDOF(obj)
+            nDof = obj.dim.ndof;
+            vrv = obj.vr;
+            vlv = setdiff(1:nDof,vrv);
+            vlv = vlv';
+            obj.vl = vlv;
+        end
+
+        function splitStiffnessMatrix(obj)
             vlv = obj.vl;
             vrv = obj.vr;
-            stiffnessMatrixv = obj.stiffnessMatrix;
-            forceVectorv = obj.forceVector;
- 
-            KLL   = stiffnessMatrixv(vlv,vlv);
-            KLR   = stiffnessMatrixv(vlv,vrv);
-            KRL   = stiffnessMatrixv(vrv,vlv);
-            KRR   = stiffnessMatrixv(vrv,vrv);
-            FextL = forceVectorv(vlv);
-            FextR = forceVectorv(vrv);
+            KG = obj.stiffnessMatrix;
+            obj.K.LL = KG(vlv,vlv);
+            obj.K.LR = KG(vlv,vrv);
+            obj.K.RL = KG(vrv,vlv);
+            obj.K.RR = KG(vrv,vrv);
+        end
 
-            uL = KLL\(FextL-KLR*urv);
-            RR = KRR*urv+KRL*uL-FextR;
+        function splitForceVector(obj)
+            vlv = obj.vl;
+            vrv = obj.vr;
+            Fext = obj.forceVector;
+            obj.F.L = Fext(vlv);
+            obj.F.R = Fext(vrv);
+        end
 
-            u = zeros(size(stiffnessMatrixv,1),1);
-            R = zeros(size(stiffnessMatrixv,1),1);
 
+        function solveSystem(obj)
+            urv = obj.ur;
+            KLL = obj.K.LL;
+            KLR = obj.K.LR;
+            KRL = obj.K.RL;
+            KRR = obj.K.RR;
+            FextL = obj.F.L;
+            FextR = obj.F.R;
+            obj.uL = KLL\(FextL-KLR*urv);
+            obj.RR = KRR*urv+KRL*obj.uL-FextR;
+        end
+
+        function jointDisplacements(obj)
+            KG = obj.stiffnessMatrix;
+            urv = obj.ur;
+            vrv = obj.vr;
+            vlv = obj.vl;
+            ul = obj.uL;
+            u = zeros(size(KG,1),1);
             for i=1:size(vrv,2)
                 u(vrv(i)) = urv(i);
-                R(vrv(i)) = RR(i);
             end
 
             for i=1:size(vlv,1)
-                u(vlv(i)) = uL(i);
+                u(vlv(i)) = ul(i);
             end
 
             obj.displacements = u;
 
+        end
+
+        function jointReactions (obj)
+            KG = obj.stiffnessMatrix;
+            vrv = obj.vr;
+            Rr  = obj.RR;
+            R = zeros(size(KG,1),1);
+             for i=1:size(vrv,2)
+                R(vrv(i)) = Rr(i);
+             end
+             obj.Reactions = R;
         end
 
     end

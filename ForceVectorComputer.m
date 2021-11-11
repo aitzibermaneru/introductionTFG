@@ -1,9 +1,12 @@
 classdef ForceVectorComputer < handle
 
     properties (Access = public)
+        forceVector
+    end
+
+    properties (Access = private)
         data
         dim
-        forceVector
     end
 
     methods (Access = public)
@@ -29,17 +32,15 @@ classdef ForceVectorComputer < handle
         function obj = computeForceVector(obj)
             nDofN = obj.dim.ni;
             nDof  = obj.dim.ndof;
-            f     = obj.data.fdata1;
-
+            Fnod  = obj.data.fdata1(:,1);
+            Fdof  = obj.data.fdata1(:,2);
+            Fmag  = obj.data.fdata1(:,3);
             Fext=zeros(nDof,1);
-
-            for i=1:size(f,1)
-                a=nDofN*f(i,1)-(nDofN-f(i,2));
-                Fext(a)=f(i,3);
+            for i=1:size(Fnod,1)
+                a=nDofN*Fnod(i)-(nDofN-Fdof(i));
+                Fext(a)=Fmag(i);
             end
-
             obj.forceVector = Fext;
-
         end
     end
 end

@@ -30,7 +30,6 @@ classdef TesterDisplacements < handle
             loadu = obj.loadedDisplacements;
             loadu = loadu.';
             v     = 1;
-
             for i=1:length(u)
                 if abs(u(i,1)-loadu(i,1)) > 1e-10
                     v = 0;
@@ -38,15 +37,11 @@ classdef TesterDisplacements < handle
                     disp(error)
                 end
             end
-
             if v == 1
                 sol = 'Displacements are correct';
                 disp(sol)
             end
-
             obj.value = v;
         end
-
     end
-
 end

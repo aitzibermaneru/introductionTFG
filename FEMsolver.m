@@ -1,14 +1,14 @@
 classdef FEMsolver < handle
 
     properties (Access = public)
-        data
-        dim
+        stiffnessMatrix
+        forceVector
         displacements
     end
 
     properties (Access = private)
-        stiffnessMatrix
-        forceVector
+        data
+        dim
     end
 
 
