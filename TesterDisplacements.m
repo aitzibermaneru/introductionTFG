@@ -1,9 +1,13 @@
 classdef TesterDisplacements < handle 
 
-   properties (Access = public )
-        loadedDisplacements
-        displacements
-        value
+   properties (Access = private )
+       data
+       dim
+       stiffnessMatrix
+       forceVector
+       loadedDisplacements
+       displacements
+       dofManager
    end
 
      methods (Access = public)
@@ -12,36 +16,52 @@ classdef TesterDisplacements < handle
             obj.init(cParams);
         end
 
-        function obj = compute(obj)  
-           obj.computeTesterDisplacements();
+        function obj = compute(obj)
+            obj.computeDOFmanagement();
+            obj.computeDisplacements();
+            obj.checkDisplacements();
         end
 
      end
 
-    methods (Access = private)
+     methods (Access = private)
 
-        function obj = init(obj,cParams)
-             obj.loadedDisplacements = cParams.loadedDisplacements;
-             obj.displacements       = cParams.displacements;
-        end
+         function obj = init(obj,cParams)
+             obj.loadedDisplacements = cParams.loadedDisplacements ;
+             obj.data                = cParams.data;
+             obj.dim                 = cParams.dim;
+             obj.forceVector         = cParams.forceVector;
+             obj.stiffnessMatrix     = cParams.stiffnessMatrix;
+         end
 
-        function obj = computeTesterDisplacements(obj)
-            u     = obj.displacements;
-            loadu = obj.loadedDisplacements;
-            loadu = loadu.';
-            v     = 1;
-            for i=1:length(u)
-                if abs(u(i,1)-loadu(i,1)) > 1e-10
-                    v = 0;
-                    error = 'Uncorrect displacement';
-                    disp(error)
-                end
-            end
-            if v == 1
-                sol = 'Displacements are correct';
-                disp(sol)
-            end
-            obj.value = v;
-        end
-    end
+         function computeDOFmanagement(obj)
+             s.data  = obj.data;
+             s.dim   = obj.dim;
+             solution = DOFmanager(s);
+             solution.compute();
+             obj.dofManager = solution;
+         end
+
+
+         function computeDisplacements(obj)
+             s.data            = obj.data;
+             s.dim             = obj.dim;
+             s.dofManager      = obj.dofManager;
+             s.stiffnessMatrix = obj.stiffnessMatrix;
+             s.forceVector     = obj.forceVector;
+             solution = DisplacementsComputer(s);
+             solution.compute();
+             obj.displacements = solution.displacements;
+         end
+
+         function checkDisplacements(obj)
+            s.parameter       = obj.displacements;
+            s.loadedParameter = obj.loadedDisplacements;
+            s.parameterName   = 'Displacements are';
+            solution = CheckComputer(s);
+            solution.compute();
+         end
+
+
+     end
 end

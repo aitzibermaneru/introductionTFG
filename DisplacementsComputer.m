@@ -1,9 +1,8 @@
 classdef DisplacementsComputer < handle
     
-
     properties (Access = public)
         displacements
-        Reactions
+        reactions
     end
 
     properties (Access = private)
@@ -11,15 +10,15 @@ classdef DisplacementsComputer < handle
         data
         stiffnessMatrix
         forceVector
-        K
-        F
-        uL
-        ur
-        vl
-        vr
-        RR
     end
 
+    properties (Access = private)
+        splitedStiffnessMatrix
+        splitedForceVector
+        dofManager
+        uL
+        RR
+    end
 
     methods (Access = public)
 
@@ -28,8 +27,6 @@ classdef DisplacementsComputer < handle
         end
 
         function obj = compute(obj)
-           obj.computefixedDOF();
-           obj.computeFreeDOF();
            obj.splitStiffnessMatrix();
            obj.splitForceVector();
            obj.solveSystem();
@@ -46,91 +43,47 @@ classdef DisplacementsComputer < handle
             obj.dim             = cParams.dim;
             obj.stiffnessMatrix = cParams.stiffnessMatrix;
             obj.forceVector     = cParams.forceVector;
-        end
-
-
-        function computefixedDOF(obj)
-            nDofN = obj.dim.ni;
-            fxnod = obj.data.fixnod;    
-            vrv = zeros(size(fxnod,1),1);            
-            for i=1:size(fxnod,1)
-                node = fxnod(i,1);
-                dof  = fxnod(i,2);
-                a = nDofN*node-(nDofN-dof);
-                vrv(i) = a;
-            end 
-            urv = fxnod(:,3);
-            obj.ur = urv;
-            obj.vr = vrv;
-        end
-
-        function computeFreeDOF(obj)
-            nDof = obj.dim.ndof;
-            vrv = obj.vr;
-            vlv = setdiff(1:nDof,vrv);
-            vlv = vlv';
-            obj.vl = vlv;
+            obj.dofManager      = cParams.dofManager;
         end
 
         function splitStiffnessMatrix(obj)
-            vlv = obj.vl;
-            vrv = obj.vr;
             KG = obj.stiffnessMatrix;
-            obj.K.LL = KG(vlv,vlv);
-            obj.K.LR = KG(vlv,vrv);
-            obj.K.RL = KG(vrv,vlv);
-            obj.K.RR = KG(vrv,vrv);
+            K = obj.dofManager.splitMatrix(KG);
+            obj.splitedStiffnessMatrix = K;
         end
 
         function splitForceVector(obj)
-            vlv = obj.vl;
-            vrv = obj.vr;
             Fext = obj.forceVector;
-            obj.F.L = Fext(vlv);
-            obj.F.R = Fext(vrv);
+            F = obj.dofManager.splitVector(Fext);
+            obj.splitedForceVector = F;
         end
 
 
         function solveSystem(obj)
-            urv = obj.ur;
-            KLL = obj.K.LL;
-            KLR = obj.K.LR;
-            KRL = obj.K.RL;
-            KRR = obj.K.RR;
-            FextL = obj.F.L;
-            FextR = obj.F.R;
-            obj.uL = KLL\(FextL-KLR*urv);
-            obj.RR = KRR*urv+KRL*obj.uL-FextR;
+            urv = obj.dofManager.ur;
+            K   = obj.splitedStiffnessMatrix;
+            F   = obj.splitedForceVector;
+            KLL = K.LL;
+            KLR = K.LR;
+            KRL = K.RL;
+            KRR = K.RR;
+            FL  = F.L;
+            FR  = F.R;
+            obj.uL = KLL\(FL-KLR*urv);
+            obj.RR = KRR*urv+KRL*obj.uL-FR;
         end
 
         function jointDisplacements(obj)
-            KG = obj.stiffnessMatrix;
-            urv = obj.ur;
-            vrv = obj.vr;
-            vlv = obj.vl;
             ul = obj.uL;
-            u = zeros(size(KG,1),1);
-            for i=1:size(vrv,2)
-                u(vrv(i)) = urv(i);
-            end
-
-            for i=1:size(vlv,1)
-                u(vlv(i)) = ul(i);
-            end
-
-            obj.displacements = u;
-
+            ur = obj.dofManager.ur;
+            obj.displacements = obj.dofManager.joinVector(ul,ur);
         end
 
         function jointReactions (obj)
-            KG = obj.stiffnessMatrix;
-            vrv = obj.vr;
-            Rr  = obj.RR;
-            R = zeros(size(KG,1),1);
-             for i=1:size(vrv,2)
-                R(vrv(i)) = Rr(i);
-             end
-             obj.Reactions = R;
+            Rr = obj.RR;
+            ul = obj.uL;
+            Rl = zeros(size(ul,1),1);
+            obj.reactions = obj.dofManager.joinVector(Rl,Rr);
         end
 
     end

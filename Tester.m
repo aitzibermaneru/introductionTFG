@@ -1,13 +1,16 @@
 classdef Tester < handle
 
+    properties (Access = public)
+        stiffnessMatrix
+        forceVector
+    end
+
     properties (Access = private)
         dim
         data
         loadedKG
         loadedFext
         loadedDisplacements
-        stiffnessMatrix
-        forceVector
         displacements
     end
 
@@ -18,7 +21,6 @@ classdef Tester < handle
         end
 
         function compute(obj)  
-           obj.computeFEMSolver();
            obj.computeTesterStiffnesMatrix();
            obj.computeTesterForceVector();
            obj.computeTesterDisplacements();
@@ -26,44 +28,40 @@ classdef Tester < handle
 
      end
 
-
      methods (Access = private)
 
          function init(obj,cParams)
              obj.data                = cParams.input.data;
              obj.dim                 = cParams.input.dim;
-             obj.loadedKG            = cParams.output.KG;
-             obj.loadedFext          = cParams.output.Fext;
-             obj.loadedDisplacements = cParams.output.u;
-         end
-
-         function computeFEMSolver(obj)
-            s.data = obj.data;
-            s.dim  = obj.dim;
-            solution = FEMsolver(s);
-            solution.compute();
-            obj.stiffnessMatrix = solution.stiffnessMatrix;
-            obj.forceVector     = solution.forceVector;
-            obj.displacements   = solution.displacements;
+             obj.loadedKG            = cParams.loaded.KG;
+             obj.loadedFext          = cParams.loaded.Fext;
+             obj.loadedDisplacements = cParams.loaded.u;
          end
 
          function computeTesterStiffnesMatrix(obj)
+             s.data     = obj.data;
+             s.dim      = obj.dim;
              s.loadedKG = obj.loadedKG;
-             s.KG       = obj.stiffnessMatrix;
              solution = TesterStiffnessMatrix(s);
              solution.compute();
+             obj.stiffnessMatrix = solution.stiffnessMatrix;
          end
 
          function computeTesterForceVector(obj)
+             s.data     = obj.data;
+             s.dim      = obj.dim;
              s.loadedFext = obj.loadedFext;
-             s.Fext       = obj.forceVector;
              solution = TesterForceVector(s);
              solution.compute();
+             obj.forceVector = solution.forceVector;
          end
 
          function computeTesterDisplacements(obj)
-             s.displacements       = obj.displacements;
+             s.data                = obj.data;
+             s.dim                 = obj.dim;
              s.loadedDisplacements = obj.loadedDisplacements;
+             s.stiffnessMatrix     = obj.stiffnessMatrix;
+             s.forceVector         = obj.forceVector;
              solution = TesterDisplacements(s);
              solution.compute();
          end

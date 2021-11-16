@@ -9,6 +9,7 @@ classdef FEMsolver < handle
     properties (Access = private)
         data
         dim
+        dofManager
     end
 
 
@@ -21,6 +22,7 @@ classdef FEMsolver < handle
         function obj = compute(obj)
             obj.computeStiffnessMatrix();
             obj.computeForceVector();
+            obj.computeDOFmanagement();
             obj.computeDisplacements();
         end
 
@@ -49,9 +51,19 @@ classdef FEMsolver < handle
             obj.forceVector = solution.forceVector;
         end
 
-        function obj = computeDisplacements(obj)
+        function computeDOFmanagement(obj)
+            s.data  = obj.data;
+            s.dim   = obj.dim;
+            solution = DOFmanager(s);
+            solution.compute();
+            obj.dofManager = solution;
+        end
+
+
+        function computeDisplacements(obj)
             s.data            = obj.data;
             s.dim             = obj.dim;
+            s.dofManager      = obj.dofManager;
             s.stiffnessMatrix = obj.stiffnessMatrix;
             s.forceVector     = obj.forceVector;
             solution = DisplacementsComputer(s);

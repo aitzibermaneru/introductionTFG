@@ -71,27 +71,16 @@ classdef StiffnessMatrixComputer < handle
         function [l,cx,cy] = computeGeometry (obj,iElem)
             Tn = obj.data.Tnod;
             x  = obj.data.x;
-            x1 = x(Tn(iElem,1),1);
-            y1 = x(Tn(iElem,1),2);
-            x2 = x(Tn(iElem,2),1);
-            y2 = x(Tn(iElem,2),2);
-            l  = sqrt((x2-x1)^2+(y2-y1)^2);
-            cx = (x2-x1)/l;
-            cy = (y2-y1)/l;
+            nodeA = Tn(iElem,1);
+            nodeB = Tn(iElem,2);
+            xA = x(nodeA,1);
+            yA = x(nodeA,2);
+            xB = x(nodeB,1);
+            yB = x(nodeB,2);
+            l  = sqrt((xB-xA)^2+(yB-yA)^2);
+            cx = (xB-xA)/l;
+            cy = (yB-yA)/l;
         end
-
-
-        function R = computeRotationMatrix(obj,R,cx,cy)
-            c1 = [cx cy];
-            c2 = [-cy cx];
-            R(1,1:2) = c1;   
-            R(2,1:2) = c2;
-            R(3,3) = 1;
-            R(4,4:5) = c1;
-            R(5,4:5) = c2;
-            R(6,6) = 1;
-        end
-
 
         function K = computeElementalMatrix(obj,iElem,K,l)
             [c1,c2,c3,c4,c5,c6] = obj.computeCoeffs(iElem,l);
@@ -118,33 +107,46 @@ classdef StiffnessMatrixComputer < handle
             c6 = 2*l^2;
         end
 
-
-
-        function Kel = computeRotateMatrix(obj,iElem,Kel,K,R)
-            Kel(:,:,iElem)=Kel(:,:,iElem)+R.'*K*R;
-        end
-
-
         function computeGlobalStiffnessMatrix(obj)
             nElem = obj.dim.nel;
             nDofN = obj.dim.ni;
             nNodE = obj.dim.nne;
             nDof  = obj.dim.ndof;
             Edof  = nNodE*nDofN;
-            T = obj.connectivityMatrix;
+            T   = obj.connectivityMatrix;
             Kel = obj.elementMatrix;
             KG = zeros(nDof,nDof);
-            for iElem=1:nElem
-                for iRow=1:Edof
-                    I=T(iElem,iRow);
-                    for iColum=1:Edof
-                        J=T(iElem,iColum);
-                        KG(I,J)=KG(I,J)+Kel(iRow,iColum,iElem);
+            for iElem = 1:nElem
+                for iRow = 1:Edof
+                    iDof = T(iElem,iRow);
+                    for iColum = 1:Edof 
+                        Kij = Kel(iRow,iColum,iElem);
+                        jDof = T(iElem,iColum);
+                        KG(iDof,jDof) = KG(iDof,jDof) + Kij;
                     end
                 end
             end
             obj.stiffnessMatrix = KG;
         end
+    end
+
+    methods (Access = private, Static)
+
+        function R = computeRotationMatrix(R,cx,cy)
+            c1 = [cx cy];
+            c2 = [-cy cx];
+            R(1,1:2) = c1;   
+            R(2,1:2) = c2;
+            R(3,3)   = 1;
+            R(4,4:5) = c1;
+            R(5,4:5) = c2;
+            R(6,6)   = 1;
+        end
+
+        function Kel = computeRotateMatrix(iElem,Kel,K,R)
+            Kel(:,:,iElem)=Kel(:,:,iElem)+R.'*K*R;
+        end
+
     end
 
 end

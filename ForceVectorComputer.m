@@ -15,7 +15,7 @@ classdef ForceVectorComputer < handle
             obj.init(cParams);
         end
 
-        function obj = compute(obj)
+        function compute(obj)
             obj.computeForceVector();
         end
 
@@ -23,24 +23,29 @@ classdef ForceVectorComputer < handle
 
     methods (Access = private)
 
-        function obj = init(obj,cParams)
+        function init(obj,cParams)
             obj.data = cParams.data;
             obj.dim  = cParams.dim;
         end
         
 
-        function obj = computeForceVector(obj)
-            nDofN = obj.dim.ni;
+        function computeForceVector(obj)
             nDof  = obj.dim.ndof;
             Fnod  = obj.data.fdata1(:,1);
-            Fdof  = obj.data.fdata1(:,2);
             Fmag  = obj.data.fdata1(:,3);
-            Fext=zeros(nDof,1);
-            for i=1:size(Fnod,1)
-                a=nDofN*Fnod(i)-(nDofN-Fdof(i));
-                Fext(a)=Fmag(i);
+            Fext = zeros(nDof,1);
+            for i = 1:size(Fnod,1)
+                iDof = obj.computeDOF(i);
+                Fext(iDof)=Fmag(i);
             end
             obj.forceVector = Fext;
+        end
+
+        function iDof = computeDOF(obj,i)
+            nDofN = obj.dim.ni;
+            Fnod  = obj.data.fdata1(:,1);
+            Fdim  = obj.data.fdata1(:,2);
+            iDof = nDofN*Fnod(i) - (nDofN-Fdim(i));
         end
     end
 end
