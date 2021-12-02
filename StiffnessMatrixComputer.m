@@ -11,7 +11,6 @@ classdef StiffnessMatrixComputer < handle
         elementMatrix
     end
 
-
     methods (Access = public)
 
         function obj = StiffnessMatrixComputer(cParams)

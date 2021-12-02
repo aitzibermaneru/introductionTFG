@@ -1,16 +1,9 @@
 classdef DOFmanager < handle
-    
+
     properties (Access = public)
-        KLL
-        KLR
-        KRR
-        KRL
-        FL 
-        FR
         ur
-        vector
     end
-    
+   
     properties (Access = private)
         dim
         data
@@ -19,14 +12,14 @@ classdef DOFmanager < handle
     end
 
     methods (Access = public)
-        
+
         function obj = DOFmanager(cParams)
             obj.init(cParams);
         end
 
         function compute(obj)
-        obj.computefixedDOF();
-        obj.computeFreeDOF();
+            obj.computefixedDOF();
+            obj.computeFreeDOF();
         end
 
         function K = splitMatrix(obj,KG)
@@ -38,24 +31,28 @@ classdef DOFmanager < handle
             K.RR = KG(vrv,vrv);
         end
 
-        function F = splitVector (obj,Fext)
+        function F = splitVector(obj,Fext)
             vlv = obj.vl;
             vrv = obj.vr;
             F.L = Fext(vlv);
             F.R = Fext(vrv);
         end
 
-        function vector = joinVector(obj,vecL,vecR)
+        function vector = joinRestrictedFree(obj,vecL,vecR)
             vlv = obj.vl;
             vrv = obj.vr;
             vec = zeros(length(vecL)+length(vecR),1);
-            for i=1:size(vrv,2)
+            for i=1:length(vrv)
                 vec(vrv(i)) = vecR(i);
             end
-            for i=1:size(vlv,1)
+            for i=1:length(vlv)
                 vec(vlv(i)) = vecL(i);
             end
             vector = vec;
+        end
+
+        function u = addRestrictedDOFs(obj,uL)
+            u = obj.joinRestrictedFree(uL,obj.ur);
         end
 
     end

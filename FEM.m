@@ -5,10 +5,11 @@
 
 function FEM
 input = 'inputData.m';
-s = loadInputData(input);
-FEMsolverdisplacements = FEMsolver(s);
+s.input = loadInputData(input);
+s.type = loadSolverType();
+FEMsolverdisplacements = FEMcomputer(s);
 FEMsolverdisplacements.compute();
-displacements = FEMsolverdisplacements.displacements;
+displacements = FEMsolverdisplacements.displacements
 end
 
 function s = loadInputData(input)
@@ -17,3 +18,7 @@ s.data = data;
 s.dim = dim;
 end
 
+function s = loadSolverType()
+solver_type = 'Solver type (Iterative or Direct): '; 
+s.solverType = input(solver_type,"s");
+end

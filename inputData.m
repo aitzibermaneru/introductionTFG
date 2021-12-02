@@ -139,12 +139,6 @@ data.fdata1=[                        % Static conditions
     2 2 -Nn7*sin(beta);
     ];
 
-data.fdata2=[                        % Dinamic conditions
-    1 2 N2a;
-    2 1 Pmax;
-    2 2 -Pmax*tan(beta);
-    ];
-
 %% SOLVER 
     % Dimensions
 dim.nd = size(data.x,2);   % Problem dimension

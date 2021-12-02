@@ -5,11 +5,18 @@ classdef DisplacementsComputer < handle
         reactions
     end
 
+    properties (Access = protected)
+        solverType
+    end
+
     properties (Access = private)
         dim
         data
         stiffnessMatrix
         forceVector
+        ur
+        LHS
+        RHS
     end
 
     properties (Access = private)
@@ -29,6 +36,7 @@ classdef DisplacementsComputer < handle
         function obj = compute(obj)
            obj.splitStiffnessMatrix();
            obj.splitForceVector();
+           obj.solveParameters();
            obj.solveSystem();
            obj.jointDisplacements();
            obj.jointReactions();
@@ -39,11 +47,13 @@ classdef DisplacementsComputer < handle
     methods (Access = private)
 
         function obj = init(obj,cParams)
+            obj.solverType      = cParams.solverType;
             obj.data            = cParams.data;
             obj.dim             = cParams.dim;
             obj.stiffnessMatrix = cParams.stiffnessMatrix;
             obj.forceVector     = cParams.forceVector;
             obj.dofManager      = cParams.dofManager;
+            obj.ur              = cParams.dofManager.ur;
         end
 
         function splitStiffnessMatrix(obj)
@@ -58,32 +68,33 @@ classdef DisplacementsComputer < handle
             obj.splitedForceVector = F;
         end
 
-
-        function solveSystem(obj)
-            urv = obj.dofManager.ur;
-            K   = obj.splitedStiffnessMatrix;
-            F   = obj.splitedForceVector;
+        function solveParameters(obj)
+            K = obj.splitedStiffnessMatrix;
+            F = obj.splitedForceVector;
             KLL = K.LL;
             KLR = K.LR;
-            KRL = K.RL;
-            KRR = K.RR;
             FL  = F.L;
-            FR  = F.R;
-            obj.uL = KLL\(FL-KLR*urv);
-            obj.RR = KRR*urv+KRL*obj.uL-FR;
+            uR = obj.ur;
+            obj.LHS  = KLL;
+            obj.RHS = (FL-KLR*uR);
+        end
+
+        function solveSystem(obj)
+            solver   = Solver.create(obj.solverType);
+            solution = solver.solve(obj.LHS, obj.RHS);
+            obj.uL   = solution;
         end
 
         function jointDisplacements(obj)
             ul = obj.uL;
-            ur = obj.dofManager.ur;
-            obj.displacements = obj.dofManager.joinVector(ul,ur);
+            obj.displacements = obj.dofManager.addRestrictedDOFs(ul);
         end
 
         function jointReactions (obj)
             Rr = obj.RR;
             ul = obj.uL;
             Rl = zeros(size(ul,1),1);
-            obj.reactions = obj.dofManager.joinVector(Rl,Rr);
+            obj.reactions = obj.dofManager.joinRestrictedFree(Rl,Rr);
         end
 
     end
