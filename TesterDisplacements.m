@@ -1,4 +1,4 @@
-classdef TesterDisplacements < handle 
+classdef TesterDisplacements < TestComputer
 
    properties (Access = private )
        data
@@ -8,6 +8,7 @@ classdef TesterDisplacements < handle
        loadedDisplacements
        displacements
        dofManager
+       solverType
    end
 
      methods (Access = public)
@@ -19,7 +20,8 @@ classdef TesterDisplacements < handle
         function obj = compute(obj)
             obj.computeDOFmanagement();
             obj.computeDisplacements();
-            obj.checkDisplacements();
+            obj.checking();
+            obj.result();
         end
 
      end
@@ -27,11 +29,13 @@ classdef TesterDisplacements < handle
      methods (Access = private)
 
          function obj = init(obj,cParams)
-             obj.loadedDisplacements = cParams.loadedDisplacements ;
              obj.data                = cParams.data;
              obj.dim                 = cParams.dim;
              obj.forceVector         = cParams.forceVector;
              obj.stiffnessMatrix     = cParams.stiffnessMatrix;
+             obj.solverType          = cParams.solverType;
+             obj.parameterName  = 'Displacements:';
+             obj.loadedParameter = cParams.loadedDisplacements ;
          end
 
          function computeDOFmanagement(obj)
@@ -42,26 +46,18 @@ classdef TesterDisplacements < handle
              obj.dofManager = solution;
          end
 
-
          function computeDisplacements(obj)
              s.data            = obj.data;
              s.dim             = obj.dim;
              s.dofManager      = obj.dofManager;
              s.stiffnessMatrix = obj.stiffnessMatrix;
              s.forceVector     = obj.forceVector;
+             s.solverType      = obj.solverType;
              solution = DisplacementsComputer(s);
              solution.compute();
              obj.displacements = solution.displacements;
+             obj.parameter = solution.displacements;
          end
-
-         function checkDisplacements(obj)
-            s.parameter       = obj.displacements;
-            s.loadedParameter = obj.loadedDisplacements;
-            s.parameterName   = 'Displacements are';
-            solution = CheckComputer(s);
-            solution.compute();
-         end
-
 
      end
 end

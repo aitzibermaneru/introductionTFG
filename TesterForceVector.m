@@ -1,4 +1,4 @@
-classdef TesterForceVector < handle
+classdef TesterForceVector < TestComputer
 
     properties (Access = public)
         forceVector 
@@ -7,7 +7,6 @@ classdef TesterForceVector < handle
       properties(Access = private )
         data
         dim
-        loadedFext
       end
       
       methods(Access = public)
@@ -18,17 +17,19 @@ classdef TesterForceVector < handle
           
           function obj = compute(obj)
               obj.computeForceVector();
-              obj.checkForceVector();
+              obj.checking();
+              obj.result();
           end
-          
+
       end
       
     methods(Access = private)
         
         function init(obj,cParams)
-             obj.loadedFext = cParams.loadedFext ;
              obj.data       = cParams.data;
              obj.dim        = cParams.dim;
+             obj.parameterName  = 'Force Vector:';
+             obj.loadedParameter = cParams.loadedFext ;
         end
         
         function computeForceVector(obj)
@@ -37,15 +38,8 @@ classdef TesterForceVector < handle
             solution = ForceVectorComputer(s);
             solution.compute();
             obj.forceVector = solution.forceVector;
-        end
-        
-        function checkForceVector(obj)
-            s.parameter       = obj.forceVector;
-            s.loadedParameter = obj.loadedFext;
-            s.parameterName   = 'Force vector is';
-            solution = CheckComputer(s);
-            solution.compute();
-        end      
+            obj.parameter   = solution.forceVector;
+        end  
    
     end
     

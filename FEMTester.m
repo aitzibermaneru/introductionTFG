@@ -8,8 +8,9 @@ inputData = 'inputData.m';
 loadedData = 'loadedData.m';
 s.input = loadInputData(inputData);
 s.loaded = loadLoadedData(loadedData);
-FEMTester = Tester(s);
-FEMTester.compute();
+s.solverType = 'Iterative';
+test = Tester(s);
+test.compute();
 end
 
 function s = loadInputData(input)

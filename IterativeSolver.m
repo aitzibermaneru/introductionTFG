@@ -1,9 +1,15 @@
 classdef IterativeSolver < Solver
 
-    methods (Static, Access = public)
+    methods (Access = public)
+        function obj = IterativeSolver(cParams)
+            obj.init(cParams);
+        end
+    end
+
+    methods (Access = public)
         
-        function solution = solve(LHS,RHS)
-            solution = pcg(LHS,RHS,[],1000);
+        function solution = solve(obj)
+            solution = pcg(obj.LHS,obj.RHS,[],1000);
         end
 
     end

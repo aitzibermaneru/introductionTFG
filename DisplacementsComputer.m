@@ -38,6 +38,7 @@ classdef DisplacementsComputer < handle
            obj.splitForceVector();
            obj.solveParameters();
            obj.solveSystem();
+           obj.computeReactions();
            obj.jointDisplacements();
            obj.jointReactions();
         end
@@ -80,9 +81,23 @@ classdef DisplacementsComputer < handle
         end
 
         function solveSystem(obj)
-            solver   = Solver.create(obj.solverType);
-            solution = solver.solve(obj.LHS, obj.RHS);
+            s.type = obj.solverType;
+            s.LHS  = obj.LHS;
+            s.RHS  = obj.RHS;
+            solver   = Solver.create(s);
+            solution = solver.solve();
             obj.uL   = solution;
+        end
+
+        function computeReactions(obj)
+            K = obj.splitedStiffnessMatrix;
+            KRR = K.RR;
+            KRL = K.RL;
+            F = obj.splitedForceVector;
+            FR = F.R;
+            urv = obj.ur;
+            ul = obj.uL;
+            obj.RR = KRR*urv+KRL*ul-FR;
         end
 
         function jointDisplacements(obj)

@@ -59,7 +59,6 @@ classdef FEMsolver < handle
             obj.dofManager = solution;
         end
 
-
         function computeDisplacements(obj)
             s.data            = obj.data;
             s.dim             = obj.dim;

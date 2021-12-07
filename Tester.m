@@ -5,13 +5,16 @@ classdef Tester < handle
         forceVector
     end
 
+    properties (Access = protected)
+        solverType
+    end
+
     properties (Access = private)
         dim
         data
         loadedKG
         loadedFext
         loadedDisplacements
-        displacements
     end
 
      methods (Access = public)
@@ -36,6 +39,7 @@ classdef Tester < handle
              obj.loadedKG            = cParams.loaded.KG;
              obj.loadedFext          = cParams.loaded.Fext;
              obj.loadedDisplacements = cParams.loaded.u;
+             obj.solverType          = cParams.solverType;
          end
 
          function computeTesterStiffnesMatrix(obj)
@@ -62,6 +66,7 @@ classdef Tester < handle
              s.loadedDisplacements = obj.loadedDisplacements;
              s.stiffnessMatrix     = obj.stiffnessMatrix;
              s.forceVector         = obj.forceVector;
+             s.solverType          = obj.solverType;
              solution = TesterDisplacements(s);
              solution.compute();
          end
