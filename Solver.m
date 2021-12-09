@@ -21,10 +21,12 @@ end
     end
 
     methods (Access = protected)
+
         function obj = init(obj,cParams)
             obj.LHS = cParams.LHS;
             obj.RHS = cParams.RHS;
         end
+        
     end
 
      methods (Abstract)

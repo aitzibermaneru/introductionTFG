@@ -1,14 +1,14 @@
 classdef FEMcomputer < handle
 
     properties (Access = public)
+        stiffnessMatrix
+        forceVector
         displacements
     end
 
     properties (Access = private)
         data
         dim
-        stiffnessMatrix
-        forceVector
         solverType
         dofManager
     end
